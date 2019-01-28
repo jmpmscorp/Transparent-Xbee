@@ -29,35 +29,42 @@ int TransparentXbeeWifiClient::connect(const char *host, uint16_t port) {
         }
 
         _xbee->saveParametersOnNVRAM();
-        _xbee->exitCommandMode();      
+        _xbee->exitCommandMode(); 
     }
 }
 
 size_t TransparentXbeeWifiClient::write(uint8_t c) {
+    wakeUpXbee();
     return _xbee->getSerial()->write(c);
 }
 
 size_t TransparentXbeeWifiClient::write(const uint8_t *buf, size_t size) {
+    wakeUpXbee();
     return _xbee->getSerial()->write(buf, size);
 }
 
 int TransparentXbeeWifiClient::available() {
+    //wakeUpXbee();
     return _xbee->getSerial()->available();
 }
 
 int TransparentXbeeWifiClient::read() {
+    //wakeUpXbee();
     return _xbee->getSerial()->read();
 }
 
 int TransparentXbeeWifiClient::read(uint8_t *buf, size_t size) {
+    //wakeUpXbee();
     return _xbee->getSerial()->readBytes(buf, size);
 }
 
 int TransparentXbeeWifiClient::peek() {
+    wakeUpXbee();
     return _xbee->getSerial()->peek();
 }
 
 void TransparentXbeeWifiClient::flush() {
+    wakeUpXbee();
     return _xbee->getSerial()->flush();
 }
 
@@ -67,4 +74,10 @@ void TransparentXbeeWifiClient::stop() {
 
 uint8_t TransparentXbeeWifiClient::connected() {
     return 1;
+}
+
+inline void TransparentXbeeWifiClient::wakeUpXbee() {
+    if(_xbee->isSleeping()) {
+        _xbee->wakeUp();
+    }
 }

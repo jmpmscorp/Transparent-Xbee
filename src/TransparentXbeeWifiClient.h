@@ -25,6 +25,7 @@ class TransparentXbeeWifiClient : public Client {
 
     private:
         Xbee * _xbee;
+        inline void wakeUpXbee();
 };
 
 #endif  // __TRANSPARENT_XBEE_WIFI_CLIENT_H__  

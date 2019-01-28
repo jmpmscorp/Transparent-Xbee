@@ -16,10 +16,18 @@ enum class ATResponse : int8_t {
     VALUE = 1
 };
 
+typedef void (*WakeUpCallback) ();
 
 class Xbee {
     public:
         Xbee(Stream &serial);
+        Xbee(Stream &serial, uint8_t ctsPin = 0, uint8_t sleepRQPin = 0);
+        
+        void init();
+        void sleep();
+        bool isSleeping();
+        void wakeUp();
+        void onWakeUp(void ( *callback) ());
 
         bool enterCommandMode();
         bool exitCommandMode();
@@ -51,6 +59,11 @@ class Xbee {
     private:
         Stream * _serial;
         Stream * _debugSerial;
+
+        uint8_t _ctsPin;
+        uint8_t _sleepRQPin;
+
+        WakeUpCallback _wakeUpCallback; 
 };
 
 

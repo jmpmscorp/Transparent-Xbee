@@ -1,7 +1,73 @@
 #include "ArduinoXbee.h"
 
-Xbee::Xbee(Stream &serial) {
-    _serial = &serial;
+Xbee::Xbee(Stream &serial) : 
+    _serial(&serial),
+    _ctsPin(0),
+    _sleepRQPin(0) 
+{
+}
+
+Xbee::Xbee(Stream &serial, uint8_t ctsPin, uint8_t sleepRQPin) :
+    _serial(&serial),
+    _ctsPin(ctsPin),
+    _sleepRQPin(sleepRQPin)
+{
+}
+
+void Xbee::init()
+{
+    if(_ctsPin > 0)
+    {
+        pinMode(_ctsPin, INPUT_PULLUP);
+    }
+
+    if(_sleepRQPin > 0)
+    {
+        pinMode(_sleepRQPin, OUTPUT);
+    }
+}
+
+void Xbee::sleep()
+{
+    if(_sleepRQPin > 0)
+    {
+        digitalWrite(_sleepRQPin, HIGH);
+    }
+}
+
+bool Xbee::isSleeping()
+{
+    if(_sleepRQPin > 0)
+    {
+        uint8_t state = digitalRead(_sleepRQPin);
+
+        if(state == HIGH)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void Xbee::wakeUp()
+{
+    if(_sleepRQPin > 0)
+    {
+        digitalWrite(_sleepRQPin, LOW);
+        delay(500);
+
+        if(_wakeUpCallback != nullptr) {
+            _wakeUpCallback();
+        }
+    }
+}
+
+void Xbee::onWakeUp( WakeUpCallback wakeUpCallback) 
+{
+    if(wakeUpCallback != nullptr) {
+        _wakeUpCallback = wakeUpCallback;
+    }
 }
 
 Stream * Xbee::getSerial() {
@@ -9,6 +75,11 @@ Stream * Xbee::getSerial() {
 }
 
 bool Xbee::enterCommandMode() {
+
+    if(isSleeping()) {
+        wakeUp();
+    }
+    
     debugPrintLn(F("+++"));
     _serial->print(F("+++"));
 
@@ -16,6 +87,10 @@ bool Xbee::enterCommandMode() {
 }
 
 bool Xbee::exitCommandMode() {
+    if(isSleeping()) {
+        wakeUp();
+    }
+
     sendATCommand(F("CN"));
 
     return waitForOK();

@@ -1,6 +1,6 @@
 #include "TransparentXbeeWifiClient.h"
 
-TransparentXbeeWifiClient::TransparentXbeeWifiClient(Xbee &xbee) {
+TransparentXbeeWifiClient::TransparentXbeeWifiClient(XbeeWifi &xbee) {
     _xbee = &xbee;
 }
 
@@ -73,7 +73,14 @@ void TransparentXbeeWifiClient::stop() {
 }
 
 uint8_t TransparentXbeeWifiClient::connected() {
-    return 1;
+    int8_t state = _xbee->readTcpStatusPin();
+
+    if(state == -1 || state == 0) {
+        return 1;
+    }
+    else {
+        return 0;
+    }
 }
 
 inline void TransparentXbeeWifiClient::wakeUpXbee() {

@@ -21,7 +21,7 @@ typedef void (*WakeUpCallback) ();
 class Xbee {
     public:
         Xbee(Stream &serial);
-        Xbee(Stream &serial, uint8_t ctsPin = 0, uint8_t sleepRQPin = 0);
+        Xbee(Stream &serial, uint8_t ctsPin, uint8_t sleepRQPin);
         
         void init();
         void sleep();
@@ -60,8 +60,8 @@ class Xbee {
         Stream * _serial;
         Stream * _debugSerial;
 
-        uint8_t _ctsPin;
-        uint8_t _sleepRQPin;
+        uint8_t _ctsPin = 0;
+        uint8_t _sleepRQPin = 0;
 
         WakeUpCallback _wakeUpCallback; 
 };

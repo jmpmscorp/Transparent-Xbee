@@ -3,12 +3,12 @@
 #ifndef __TRANSPARENT_XBEE_WIFI_CLIENT_H__
 #define __TRANSPARENT_XBEE_WIFI_CLIENT_H__
 
-#include "ArduinoXbee.h"
+#include "XbeeWifi.h"
 #include "Client.h"
 
 class TransparentXbeeWifiClient : public Client {
     public:
-        TransparentXbeeWifiClient(Xbee &xbee);
+        TransparentXbeeWifiClient(XbeeWifi &xbee);
 
         int connect(IPAddress ip, uint16_t port);
         int connect(const char *host, uint16_t port);
@@ -24,7 +24,7 @@ class TransparentXbeeWifiClient : public Client {
         operator bool() {return connected(); }
 
     private:
-        Xbee * _xbee;
+        XbeeWifi * _xbee;
         inline void wakeUpXbee();
 };
 

@@ -83,7 +83,7 @@ bool Xbee::enterCommandMode() {
     debugPrintLn(F("+++"));
     _serial->print(F("+++"));
 
-    return waitForOK(2500);
+    return waitForOK(3000);
 }
 
 bool Xbee::exitCommandMode() {
@@ -99,7 +99,7 @@ bool Xbee::exitCommandMode() {
 bool Xbee::saveParametersOnNVRAM() {
     sendATCommand(F("WR"));
 
-    return waitForOK(2500);
+    return waitForOK(3000);
 }
 
 ATResponse Xbee::waitForResponse( char * buffer, size_t size, uint32_t timeout) {

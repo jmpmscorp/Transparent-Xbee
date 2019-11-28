@@ -35,12 +35,20 @@ int TransparentXbeeWifiClient::connect(const char *host, uint16_t port) {
 
 size_t TransparentXbeeWifiClient::write(uint8_t c) {
     wakeUpXbee();
-    return _xbee->getSerial()->write(c);
+    // return _xbee->getSerial()->write(c);
+    return write(&c, 1);
 }
 
 size_t TransparentXbeeWifiClient::write(const uint8_t *buf, size_t size) {
     wakeUpXbee();
-    return _xbee->getSerial()->write(buf, size);
+
+    while(!_xbee->checkCommandTransactionTime(1000)) {
+        _xbee->getCustomDelayFn()(100);
+    }
+
+    size_t aux = _xbee->getSerial()->write(buf, size);
+    _xbee->updateTransparentTransactionTime();
+    return aux;
 }
 
 int TransparentXbeeWifiClient::available() {

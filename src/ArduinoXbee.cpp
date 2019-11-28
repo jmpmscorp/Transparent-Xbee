@@ -55,7 +55,7 @@ void Xbee::wakeUp()
     if(_sleepRQPin > 0)
     {
         digitalWrite(_sleepRQPin, LOW);
-        delay(500);
+        _delay(500);
 
         if(_wakeUpCallback != nullptr) {
             _wakeUpCallback();
@@ -74,26 +74,45 @@ Stream * Xbee::getSerial() {
     return _serial;
 }
 
-bool Xbee::enterCommandMode() {
+inline bool Xbee::isTimedout(unsigned long start, unsigned long milliseconds) {
+    return _millis() - start > milliseconds;
+}
+
+
+bool Xbee::enterCommandMode(unsigned long timeout) {
+    bool success = false;
 
     if(isSleeping()) {
         wakeUp();
+    }    
+
+    debugPrintLn(F("+++"));
+
+    unsigned long start = _millis();
+
+    while(!checkTransparentTransactionTime(1000)) {
+        _delay(100);
+    }
+
+    while(!success && !isTimedout(start, timeout)) {
+        _serial->print(F("+++"));
+        success = waitForOK();
+        _delay(10);
     }
     
-    debugPrintLn(F("+++"));
-    _serial->print(F("+++"));
-
-    return waitForOK(3000);
+    return success;
 }
 
-bool Xbee::exitCommandMode() {
+
+bool Xbee::exitCommandMode(unsigned long timeout) {
+    bool success = false;
+
     if(isSleeping()) {
         wakeUp();
     }
 
     sendATCommand(F("CN"));
-
-    return waitForOK();
+    return waitForOK(1500);
 }
 
 bool Xbee::saveParametersOnNVRAM() {
@@ -103,9 +122,9 @@ bool Xbee::saveParametersOnNVRAM() {
 }
 
 ATResponse Xbee::waitForResponse( char * buffer, size_t size, uint32_t timeout) {
-    uint32_t now = millis();
-
-    while(millis() - now < timeout) {
+    uint32_t now = _millis();
+    
+    while(_millis() - now < timeout) {
         size_t len = readLine(buffer, size, timeout);
 
         if(len > 0) {
@@ -119,6 +138,8 @@ ATResponse Xbee::waitForResponse( char * buffer, size_t size, uint32_t timeout) 
                 return ATResponse::VALUE;
             }
         }
+
+        _delay(10);
     }
 
     return ATResponse::TIMEOUT;
@@ -126,13 +147,12 @@ ATResponse Xbee::waitForResponse( char * buffer, size_t size, uint32_t timeout) 
 
 bool Xbee::waitForOK(uint32_t timeout) {
     char responseBuffer[6];
-    uint32_t now = millis();
-
-    while(millis() - now < timeout) {
-        if(waitForResponse(responseBuffer, sizeof(responseBuffer)) == ATResponse::OK) {
-            return true;
-        }
+    uint32_t now = _millis();
+    
+    if(waitForResponse(responseBuffer, sizeof(responseBuffer), timeout) == ATResponse::OK) {
+        return true;
     }
+    
 
     return false;
 
@@ -140,6 +160,46 @@ bool Xbee::waitForOK(uint32_t timeout) {
 
 void Xbee::setDebugSerial(Stream &serial) {
     _debugSerial = &serial;
+}
+
+void Xbee::setCustomMillisFn(MillisFn millisFn) {
+    if(millisFn) {
+        _millis = millisFn;
+    }
+}
+
+void Xbee::setCustomDelayFn(DelayFn delayFn) {
+    if(delayFn) {
+        _delay = delayFn;
+    }
+}
+
+DelayFn Xbee::getCustomDelayFn() {
+    return _delay;
+}
+
+
+void Xbee::updateTransparentTransactionTime() {
+    _lastTransparentTransactionTime = _millis();
+}
+
+
+void Xbee::updateCommandTransactionTime() {
+    _lastCommandTransactionTime = _millis();
+}
+
+/**
+ * Function to check pre command mode silent time
+ * */
+bool Xbee::checkTransparentTransactionTime(unsigned long milliseconds) {
+    return _millis() - _lastTransparentTransactionTime > milliseconds; 
+}
+
+/**
+ * Function to check post command mode silent time
+ * */
+bool Xbee::checkCommandTransactionTime(unsigned long milliseconds) {
+    return _millis() - _lastCommandTransactionTime > milliseconds;
 }
 
 void Xbee::sendATCommand(const __FlashStringHelper * cmd) {
@@ -155,7 +215,7 @@ void Xbee::sendATCommand(const __FlashStringHelper * cmd, int value) {
     _serial->print(value, HEX);
     debugPrint(cmd);
     debugPrint(value);
-    sendCR();
+    sendCR();    
 }
 
 void Xbee::sendATCommand(const __FlashStringHelper * cmd, const char * str) {
@@ -166,6 +226,8 @@ void Xbee::sendATCommand(const __FlashStringHelper * cmd, const char * str) {
     debugPrint(str);
     sendCR();
 }
+
+
 void Xbee::sendATCommand(const char * cmd) {
     sendAT();
     _serial->print(cmd);
@@ -200,20 +262,22 @@ inline void Xbee::sendCR() {
     _serial->print('\r');
     _serial->flush();
     debugPrintLn();
+    updateCommandTransactionTime();
 }
+
 // Returns a character from the modem stream if read within _timeout ms or -1 otherwise.
 int Xbee::readByte(uint32_t timeout) const
 {
     int c;
-    uint32_t _startMillis = millis();
+    uint32_t _startMillis = _millis();
 
     do {
         c = _serial->read();
         if (c >= 0) {
-            Serial.print((char)c);
+            debugPrint((char)c);
             return c;
         }
-    } while (millis() - _startMillis < timeout);
+    } while (_millis() - _startMillis < timeout);
 
     return -1; // -1 indicates timeout
 }

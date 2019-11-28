@@ -17,6 +17,8 @@ enum class ATResponse : int8_t {
 };
 
 typedef void (*WakeUpCallback) ();
+typedef unsigned long (*MillisFn) ();
+typedef void (*DelayFn) (unsigned long milliseconds);
 
 class Xbee {
     public:
@@ -29,16 +31,25 @@ class Xbee {
         void wakeUp();
         void onWakeUp(void ( *callback) ());
 
-        bool enterCommandMode();
-        bool exitCommandMode();
+        bool enterCommandMode(unsigned long timeout = 3000);
+        bool exitCommandMode(unsigned long timeout = 3000);
         bool saveParametersOnNVRAM();
-
-        bool waitForOK(uint32_t timeout = 500);
-        ATResponse Xbee::waitForResponse( char * buffer, size_t size, uint32_t timeout = 500);
+    
+        bool waitForOK(uint32_t timeout = 1500);
+        ATResponse waitForResponse( char * buffer, size_t size, uint32_t timeout = 1500);
 
         Stream * getSerial();
         void setDebugSerial(Stream &serial);
 
+        void updateTransparentTransactionTime();
+        void updateCommandTransactionTime();
+        bool checkTransparentTransactionTime(unsigned long milliseconds);
+        bool checkCommandTransactionTime(unsigned long milliseconds);
+
+        void setCustomMillisFn(MillisFn millisFn);
+        void setCustomDelayFn(DelayFn delayFn);
+        DelayFn getCustomDelayFn();
+        
         void sendATCommand(const __FlashStringHelper * cmd);
         void sendATCommand(const __FlashStringHelper * cmd, int value);
         void sendATCommand(const __FlashStringHelper * cmd, const char * str);
@@ -55,15 +66,22 @@ class Xbee {
         int readByte(uint32_t timeout = 500) const;
         size_t readBytes(uint8_t * buffer, size_t length, uint32_t timeout = 500);
         size_t readBytesUntil(char terminator, char * buffer, size_t length, uint32_t timeout = 500);
+        bool isTimedout(unsigned long start, unsigned long milliseconds);
 
-    private:
+    private:        
         Stream * _serial;
         Stream * _debugSerial;
 
         uint8_t _ctsPin = 0;
         uint8_t _sleepRQPin = 0;
 
-        WakeUpCallback _wakeUpCallback; 
+        unsigned long _lastTransparentTransactionTime = 0;
+        unsigned long _lastCommandTransactionTime = 0;
+
+        MillisFn _millis = millis;
+        DelayFn _delay = delay;
+        WakeUpCallback _wakeUpCallback;
+          
 };
 
 
